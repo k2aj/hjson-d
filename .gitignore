@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/hjson
+hjson.so
+hjson.dylib
+hjson.dll
+hjson.a
+hjson.lib
+hjson-test-*
+*.exe
+*.o
+*.obj
+*.lst

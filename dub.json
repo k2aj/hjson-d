@@ -1,0 +1,21 @@
+{
+	"authors": [
+		"Krzysztof Jajeśnica"
+	],
+	"configurations": [
+		{
+			"dflags": [
+				"-J=source/tests"
+			],
+			"name": "unittest",
+			"targetType": "executable"
+		}
+	],
+	"copyright": "Copyright © 2020, Krzysztof Jajeśnica",
+	"dependencies": {
+		"unit-threaded": "~>1.0.10"
+	},
+	"description": "HJSON parser for Dlang",
+	"license": "MIT",
+	"name": "hjson"
+}
