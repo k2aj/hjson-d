@@ -19,7 +19,7 @@
 	"dependencies": {
 		"unit-threaded": "~>1.0.10"
 	},
-	"description": "HJSON parser for Dlang",
+	"description": "HJSON parser compatible with std.json.",
 	"license": "MIT",
-	"name": "hjson"
+	"name": "hjson-d"
 }
