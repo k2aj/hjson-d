@@ -33,6 +33,12 @@ HJSON is a syntax extension to JSON which improves readability and helps avoid b
 }
 ```
 
+### Getting started
+Add hjson-d to your DUB project:
+```
+dub add hjson-d
+```
+
 ### Usage
 You can parse HJSON into a `std.json.JSONValue` by importing `hjson` and using `parseHJSON`:
 ```d
@@ -50,3 +56,4 @@ When `parseHJSON` encounters invalid HJSON it will throw a `HJSONException`.
 [1, 2, 3, 4] 5 #Trailing 5 will not cause an error because parsing stops after [1, 2, 3, 4]
 ```
 - Parsing from arbitrary forward ranges is currently not supported, but is planned for the future.
+- Parsing doesn't support omitting braces for root object.
