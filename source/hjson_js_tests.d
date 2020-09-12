@@ -2,6 +2,7 @@
 module hjson_js_tests;
 
 version(unittest):
+version(Have_unit_threaded):
 
 import std.json;
 import std.stdio : writeln;

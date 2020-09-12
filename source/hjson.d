@@ -593,6 +593,7 @@ bool isPunctuator(dchar c)
 }
 
 version(unittest):
+version(Have_unit_threaded):
 
 import unit_threaded;
 import std.json;
