@@ -4,6 +4,10 @@
 	],
 	"configurations": [
 		{
+			"name" : "library",
+			"targetType" : "library"
+		},
+		{
 			"dflags": [
 				"-J=source/tests"
 			],

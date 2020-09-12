@@ -9,7 +9,7 @@ version(unittest)
 		import unit_threaded;
 		mixin runTestsMain!(
 			"hjson",
-			"hjson_tests"
+			"hjson_js_tests"
 		);
 	}
 }
