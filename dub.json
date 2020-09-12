@@ -12,13 +12,13 @@
 				"-J=source/tests"
 			],
 			"name": "unittest",
-			"targetType": "executable"
+			"targetType": "executable",
+			"dependencies": {
+				"unit-threaded": "~>1.0.0"
+			}
 		}
 	],
 	"copyright": "Copyright © 2020, Krzysztof Jajeśnica",
-	"dependencies": {
-		"unit-threaded": "~>1.0.10"
-	},
 	"description": "HJSON parser compatible with std.json.",
 	"license": "MIT",
 	"name": "hjson-d"

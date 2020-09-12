@@ -14,3 +14,4 @@ hjson-test-*
 *.o
 *.obj
 *.lst
+*.lib
