@@ -1,6 +1,6 @@
 module hjson;
 
-import std.json;
+public import std.json : JSONValue;
 import std.typecons : Flag;
 import std.array;
 import std.range;
@@ -590,4 +590,65 @@ alias enforce = _enforce!HJSONException;
 bool isPunctuator(dchar c)
 {
     return "{}[],:"d.canFind(c);
+}
+
+version(unittest):
+
+import unit_threaded;
+import std.json;
+
+@("readme") unittest
+{
+
+    auto hjson = q"<
+        // example.hjson
+        {
+            "name": "hjson",
+            "readable": {
+                omitQuotes: This is a quoteless string
+                omitCommas: [
+                    1
+                    2
+                    3
+                ]
+                trailingCommas: {
+                    a : true,
+                    b : false,
+                    c : null,
+                }
+                multilineStrings:
+                    '''
+                    Lorem
+                    ipsum
+                    '''
+                # Comments
+                // C-style comments
+                /*
+                    Block
+                    comments
+                */
+            }
+        }
+    >";
+    auto json = q"<
+        {
+            "name": "hjson",
+            "readable": {
+                "omitQuotes": "This is a quoteless string",
+                "omitCommas": [
+                    1,
+                    2,
+                    3
+                ],
+                "trailingCommas": {
+                    "a" : true,
+                    "b" : false,
+                    "c" : null
+                },
+                "multilineStrings": "Lorem\nipsum"
+            }
+        }
+    >";
+
+    hjson.parseHJSON.should == json.parseJSON;
 }
