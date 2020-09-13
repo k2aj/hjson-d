@@ -1,6 +1,6 @@
 # hjson-d
 
-Hjson-d is a [HJSON](hjson.org) parser written in D.
+Hjson-d is a [HJSON](https://hjson.github.io/) parser written in D.
 HJSON is a syntax extension to JSON which improves readability and helps avoid bugs caused by missing/trailing commas:
 ```hjson
 // example.hjson
