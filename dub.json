@@ -4,22 +4,23 @@
 	],
 	"configurations": [
 		{
-			"name" : "library",
-			"targetType" : "library"
+			"name": "library",
+			"targetType": "library"
 		},
 		{
+			"dependencies": {
+				"unit-threaded": "~>1.0.0",
+				"asdf": "~>0.7.0"
+			},
 			"dflags": [
 				"-J=source/tests"
 			],
 			"name": "unittest",
-			"targetType": "executable",
-			"dependencies": {
-				"unit-threaded": "~>1.0.0"
-			}
+			"targetType": "executable"
 		}
 	],
 	"copyright": "Copyright © 2020, Krzysztof Jajeśnica",
-	"description": "HJSON parser compatible with std.json.",
+	"description": "HJSON parser compatible with std.json and ASDF.",
 	"license": "MIT",
 	"name": "hjson-d"
 }

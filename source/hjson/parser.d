@@ -1,4 +1,4 @@
-module hjson;
+module hjson.parser;
 
 public import std.json : JSONValue;
 import std.typecons : Flag;
@@ -11,6 +11,8 @@ import std.conv : to, ConvException;
 import std.exception : basicExceptionCtors, _enforce = enforce;
 import std.format : format;
 
+import hjson.adapter;
+
 /** Parses a HJSON value into a `JSONValue` object.
     Params:
         hjson = string containing the HJSON.
@@ -21,8 +23,16 @@ import std.format : format;
 */
 JSONValue parseHJSON(string hjson)
 {
+    JSONValue result;
+    scope consumer = StdJsonSerializer(&result);
+    hjson.parseHJSON(consumer);
+    return result;
+}
+
+void parseHJSON(Consumer)(string hjson, ref Consumer consumer)
+{
     size_t collumn = 0;
-    return hjson.parseValue(collumn);
+    hjson.parseValue(collumn,consumer);
 }
 
 ///
@@ -39,62 +49,62 @@ class HJSONException : Exception
         collumn = How many `dchar`s were popped from the front of `hjson` since
                   last line feed. Will be updated by the function. 
                   Needed to properly parse multiline strings.
+        consumer = Constructs the result
     Throws: 
     `HJSONException` if `hjson` starts with an invalid HJSON value.
     Invalid HJSON past the first valid value is not detected.
-    Returns: Parsed `JSONValue`
 */
-JSONValue parseValue(ref string hjson, ref size_t collumn)
+void parseValue(Consumer)(ref string hjson, ref size_t collumn, ref Consumer consumer)
 {
     hjson.skipWC(collumn);
     enforce(!hjson.empty, "Expected a value before EOF.");
     
-    JSONValue result;
     if(hjson.front == '{')
     {
-        result.object = null;
-        hjson.parseAggregate!('{', '}', parseObjectMember)(collumn, result);
+        auto state = consumer.objectBegin();
+        hjson.parseAggregate!('{', '}', parseObjectMember)(collumn, consumer);
+        consumer.objectEnd(state);
     }
     else if(hjson.front == '[')
     {
-        result.array = [];
-        hjson.parseAggregate!('[', ']', (ref hjs, ref col, ref arr){
-            result.array ~= hjs.parseValue(col);
-        })(collumn,result);
+        auto state = consumer.arrayBegin();
+        hjson.parseAggregate!('[', ']', (ref hjs, ref col, ref ser){
+            ser.elemBegin;
+            hjs.parseValue(col,ser);
+        })(collumn,consumer);
+        consumer.arrayEnd(state);
     }
     else if(hjson.save.startsWith("true"))
     {
-        if(!hjson.tryParseBuiltin(collumn,true,"true",result))
-            result = hjson.parseQuotelessString();
+        if(!hjson.tryParseBuiltin(collumn,true,"true",consumer))
+            consumer.putValue(hjson.parseQuotelessString());
     }
     else if(hjson.save.startsWith("false"))
     {
-        if(!hjson.tryParseBuiltin(collumn,false,"false",result))
-            result = hjson.parseQuotelessString();
+        if(!hjson.tryParseBuiltin(collumn,false,"false",consumer))
+            consumer.putValue(hjson.parseQuotelessString());
     }
     else if(hjson.save.startsWith("null"))
     {
-        if(!hjson.tryParseBuiltin(collumn,null,"null",result))
-            result = hjson.parseQuotelessString();
+        if(!hjson.tryParseBuiltin(collumn,null,"null",consumer))
+            consumer.putValue(hjson.parseQuotelessString());
     }
     else if(hjson.front == '"')
-        result = hjson.parseJSONString(collumn);
+        consumer.putValue(hjson.parseJSONString(collumn));
     else if(hjson.front == '\'')
     {
         auto r = hjson.save;
         if(r.startsWith("'''"))
-            result = hjson.parseMultilineString(collumn);
+            consumer.putValue(hjson.parseMultilineString(collumn));
         else
-            result = hjson.parseJSONString(collumn);
+            consumer.putValue(hjson.parseJSONString(collumn));
     }
     else if(!hjson.front.isPunctuator)
     {
-        if(!hjson.tryParseNumber(result))
-            result = hjson.parseQuotelessString();
+        if(!hjson.tryParseNumber(consumer))
+            consumer.putValue(hjson.parseQuotelessString());
     }
-    else 
-        throw new HJSONException("Invalid HJSON.");
-    return result;
+    else throw new HJSONException("Invalid HJSON.");
 }
 
 /** Parses a single HJSON object or array.
@@ -117,12 +127,11 @@ JSONValue parseValue(ref string hjson, ref size_t collumn)
     Invalid HJSON past the first valid value is not detected.
 */
 void parseAggregate
-    (dchar start, dchar end, alias parseMember)
-    (ref string hjson, ref size_t collumn, ref JSONValue aggregate)
+    (dchar start, dchar end, alias parseMember, Consumer)
+    (ref string hjson, ref size_t collumn, ref Consumer consumer)
 in(!hjson.empty)
 in(hjson.front == start)
 {
-    import std.stdio;
     // Get rid of opening '{' and whitespace
     hjson.popFront();
     ++collumn;
@@ -138,7 +147,7 @@ in(hjson.front == start)
     }
 
     //Now we know we have at least one member
-    parseMember(hjson, collumn, aggregate);
+    parseMember(hjson, collumn, consumer);
 
     while(true)
     {
@@ -163,7 +172,7 @@ in(hjson.front == start)
         else
         {
             enforce(gotMemberSeparator, hjson);
-            parseMember(hjson, collumn, aggregate);
+            parseMember(hjson, collumn, consumer);
         }
     }
     assert(0, "Shouldn't get there");
@@ -224,20 +233,20 @@ bool turnsIntoQuotelessString(string sufix)
                   Needed to properly parse multiline strings.
         value = Value of the constant.
         repr = How the constant is represented in HJSON.
-        result = Used to return the parsed value.
+        consumer = Used to return the parsed value.
     Throws: 
     `HJSONException` if `hjson` starts with an invalid HJSON value.
     Invalid HJSON past the first valid value is not detected.
     Returns: 
     `true` if parsing the constant succeeds, `false` if the value was actually a quoteless string.
 */
-bool tryParseBuiltin(T)(ref string hjson, ref size_t collumn, T value, string repr, out JSONValue result)
+bool tryParseBuiltin(T,Consumer)(ref string hjson, ref size_t collumn, T value, string repr, ref Consumer consumer)
 {
     auto sufix = hjson[repr.length..$];
     if(turnsIntoQuotelessString(sufix)) return false;
     else 
     {
-        result = value;
+        consumer.putValue(value);
         hjson = sufix;
         collumn += repr.walkLength;
         return true;
@@ -250,14 +259,14 @@ bool tryParseBuiltin(T)(ref string hjson, ref size_t collumn, T value, string re
                 The beginning of the string until the end of the parsed 
                 HJSON value is consumed if and only if the number was
                 succesfully parsed.
-        result = Used to return the parsed value.
+        consumer = Used to return the parsed value.
     Throws: 
     `HJSONException` if `hjson` starts with an invalid HJSON value.
     Invalid HJSON past the first valid value is not detected.
     Returns: 
     `true` if parsing the number succeeds, `false` if the value was actually a quoteless string.
 */
-bool tryParseNumber(ref string hjson, out JSONValue result)
+bool tryParseNumber(Consumer)(ref string hjson, ref Consumer consumer)
 {
     size_t i=0;
     bool parseAsDouble = false;
@@ -309,12 +318,12 @@ bool tryParseNumber(ref string hjson, out JSONValue result)
         return false;
 
     if(!parseAsDouble)
-        try result = hjson[0..i].to!long;
+        try consumer.putValue(hjson[0..i].to!long);
         catch(ConvException) 
             parseAsDouble = true;
 
     if(parseAsDouble)
-        result = hjson[0..i].to!double;
+        consumer.putValue(hjson[0..i].to!double);
 
     hjson.popFrontN(i);
     return true;
@@ -468,12 +477,12 @@ in(hjson.save.startsWith("'''"))
         collumn = How many `dchar`s were popped from the front of `hjson` since
                 last line feed. Will be updated by the function. 
                 Needed to properly parse multiline strings.
-        obj = JSONValue object into which the parsed member will be stored.
+        consumer = Consumer used to construct the JSON object.
     Throws: 
     `HJSONException` if `hjson` starts with an invalid HJSON object member.
     Invalid HJSON past the first valid object member is not detected.
 */
-void parseObjectMember(ref string hjson, ref size_t collumn, ref JSONValue obj)
+void parseObjectMember(Consumer)(ref string hjson, ref size_t collumn, ref Consumer consumer)
 {
     // Parse the key
     string key;
@@ -502,7 +511,9 @@ void parseObjectMember(ref string hjson, ref size_t collumn, ref JSONValue obj)
     // Parse the value
     hjson.skipWC(collumn);
     enforce(!hjson.empty);
-    obj.object[key] = hjson.parseValue(collumn);
+
+    consumer.putKey(key);
+    hjson.parseValue(collumn, consumer);
 }
 
 /** Consumes all whitespace and comments from the front of the passed HJSON.
@@ -598,58 +609,71 @@ version(Have_unit_threaded):
 import unit_threaded;
 import std.json;
 
+immutable readmeHjson = q"<
+    // example.hjson
+    {
+        "name": "hjson",
+        "readable": {
+            omitQuotes: This is a quoteless string
+            omitCommas: [
+                1
+                2
+                3
+            ]
+            trailingCommas: {
+                a : true,
+                b : false,
+                c : null,
+            }
+            multilineStrings:
+                '''
+                Lorem
+                ipsum
+                '''
+            # Comments
+            // C-style comments
+            /*
+                Block
+                comments
+            */
+        }
+    }
+>";
+
+immutable readmeJson = q"<
+    {
+        "name": "hjson",
+        "readable": {
+            "omitQuotes": "This is a quoteless string",
+            "omitCommas": [
+                1,
+                2,
+                3
+            ],
+            "trailingCommas": {
+                "a" : true,
+                "b" : false,
+                "c" : null
+            },
+            "multilineStrings": "Lorem\nipsum"
+        }
+    }
+>";
+
 @("readme") unittest
 {
+    readmeHjson.parseHJSON.should == readmeJson.parseJSON;
+}
 
-    auto hjson = q"<
-        // example.hjson
-        {
-            "name": "hjson",
-            "readable": {
-                omitQuotes: This is a quoteless string
-                omitCommas: [
-                    1
-                    2
-                    3
-                ]
-                trailingCommas: {
-                    a : true,
-                    b : false,
-                    c : null,
-                }
-                multilineStrings:
-                    '''
-                    Lorem
-                    ipsum
-                    '''
-                # Comments
-                // C-style comments
-                /*
-                    Block
-                    comments
-                */
-            }
-        }
-    >";
-    auto json = q"<
-        {
-            "name": "hjson",
-            "readable": {
-                "omitQuotes": "This is a quoteless string",
-                "omitCommas": [
-                    1,
-                    2,
-                    3
-                ],
-                "trailingCommas": {
-                    "a" : true,
-                    "b" : false,
-                    "c" : null
-                },
-                "multilineStrings": "Lorem\nipsum"
-            }
-        }
-    >";
+@("Direct HJSON to JSON conversion") unittest
+{
+    import asdf : jsonSerializer, parseJson;
+    import std.array : appender;
 
-    hjson.parseHJSON.should == json.parseJSON;
+    auto json = appender!string();
+    auto serializer = jsonSerializer(&json.put!(const(char)[]));
+    readmeHjson.parseHJSON(serializer);
+    serializer.flush;
+
+    json.data.parseJson.should == readmeJson.parseJson;
 }
