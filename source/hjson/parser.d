@@ -1,58 +1,67 @@
 module hjson.parser;
 
 public import std.json : JSONValue;
-import std.typecons : Flag;
-import std.array;
-import std.range;
+
 import std.algorithm;
-import std.uni;
+import std.array;
 import std.ascii : isDecimalDigit = isDigit, isHexDigit;
-import std.conv : to, ConvException;
-import std.exception : basicExceptionCtors, _enforce = enforce;
+import std.conv : ConvException, to;
+import std.exception : _enforce = enforce, basicExceptionCtors;
 import std.format : format;
+import std.range;
+import std.typecons : Flag;
+import std.uni;
 
 import hjson.adapter;
 
-/** Parses a HJSON value into a `JSONValue` object.
+/** Parses a Hjson value into a `JSONValue` object.
     Params:
-        hjson = string containing the HJSON.
+        hjson = string containing the Hjson.
     Throws:
-        `HJSONException` when passed invalid HJSON.
+        `HjsonException` when passed invalid Hjson.
     Returns:
         Parsed JSONValue.
 */
-JSONValue parseHJSON(string hjson)
+JSONValue parseHjson(string hjson)
 {
     JSONValue result;
     scope consumer = StdJsonSerializer(&result);
-    hjson.parseHJSON(consumer);
+    hjson.parseHjson(consumer);
     return result;
 }
 
-void parseHJSON(Consumer)(string hjson, ref Consumer consumer)
+/** Parses a Hjson value and feeds the parsed tokens into given consumer.
+    This allows for parsing into representations other than std.json.JSONValue.
+    Params:
+        hjson = string containing the Hjson.
+        consumer = Object responsible for processing the parsed tokens.
+    Throws:
+        `HjsonException` when passed invalid Hjson.
+*/
+void parseHjson(Consumer)(string hjson, ref Consumer consumer)
 {
     size_t collumn = 0;
     hjson.parseValue(collumn,consumer);
 }
 
 ///
-class HJSONException : Exception
+class HjsonException : Exception
 {
     mixin basicExceptionCtors;
 }
 
-/** Parses a single HJSON value (object, array, string, number, bool or null).
+/** Parses a single Hjson value (object, array, string, number, bool or null).
     Params:
         hjson = string being parsed. May contain leading whitespace. 
                 The beginning of the string until the end of the parsed 
-                HJSON value is consumed.
+                Hjson value is consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                   last line feed. Will be updated by the function. 
                   Needed to properly parse multiline strings.
-        consumer = Constructs the result
+        consumer = Object responsible for processing the parsed tokens.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
 */
 void parseValue(Consumer)(ref string hjson, ref size_t collumn, ref Consumer consumer)
 {
@@ -104,27 +113,26 @@ void parseValue(Consumer)(ref string hjson, ref size_t collumn, ref Consumer con
         if(!hjson.tryParseNumber(consumer))
             consumer.putValue(hjson.parseQuotelessString());
     }
-    else throw new HJSONException("Invalid HJSON.");
+    else throw new HjsonException("Invalid Hjson.");
 }
 
-/** Parses a single HJSON object or array.
+/** Parses a single Hjson object or array.
     Params:
         hjson = string being parsed. Must not contain leading whitespace. 
                 The beginning of the string until the end of the parsed 
-                HJSON value is consumed.
+                Hjson value is consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                   last line feed. Will be updated by the function. 
                   Needed to properly parse multiline strings.
-        aggregate = JSONValue object or array into which the result will be
-                    stored. Must be initialised by the caller.
+        consumer = Object responsible for processing the parsed tokens.
         start = Token which marks the beginning of parsed aggregate ('[' for array, '{' for object)
         end = Token which marks the end of parsed aggregate (']' for array, '}' for object)
         parseMember = Function used to parse a single aggregate member. Parameters are
-                      the same as `parseAggregate`. HJSON passed to `parseMember` contains
+                      the same as `parseAggregate`. Hjson passed to `parseMember` contains
                       no leading whitespace.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
 */
 void parseAggregate
     (dchar start, dchar end, alias parseMember, Consumer)
@@ -137,7 +145,7 @@ in(hjson.front == start)
     ++collumn;
     hjson.skipWC(collumn);
 
-    //Handle empty HJSON object {whitespace/comments only}
+    //Handle empty Hjson object {whitespace/comments only}
     enforce(!hjson.empty, "Expected member or '%s' before EOF.".format(end));
     if(hjson.front == end)
     {
@@ -179,13 +187,13 @@ in(hjson.front == start)
 }
 
 /** In JSON you can determine the type of the parsed value by looking at just their
-    first character. In HJSON if you follow a valid JSON number/bool/null with certain other
+    first character. In Hjson if you follow a valid JSON number/bool/null with certain other
     characters it will turn into a quoteless string. This function checks whether parsed
     value turns into a quoteless string by looking at the following characters.
 
     Params:
-        sufix = HJSON following the previously parsed value.
-    Returns: Whether `sufix` turns the preceding HJSON number/bool/null into a quoteless string.
+        sufix = Hjson following the previously parsed value.
+    Returns: Whether `sufix` turns the preceding Hjson number/bool/null into a quoteless string.
 */
 bool turnsIntoQuotelessString(string sufix)
 {
@@ -226,17 +234,17 @@ bool turnsIntoQuotelessString(string sufix)
     Params:
         hjson = string being parsed. Must not contain leading whitespace. 
                 The beginning of the string until the end of the parsed 
-                HJSON value is consumed if and only if the constant was
+                Hjson value is consumed if and only if the constant was
                 succesfully parsed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                   last line feed. Will be updated by the function. 
                   Needed to properly parse multiline strings.
         value = Value of the constant.
-        repr = How the constant is represented in HJSON.
-        consumer = Used to return the parsed value.
+        repr = How the constant is represented in Hjson.
+        consumer = Object responsible for processing the parsed tokens.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
     Returns: 
     `true` if parsing the constant succeeds, `false` if the value was actually a quoteless string.
 */
@@ -253,16 +261,16 @@ bool tryParseBuiltin(T,Consumer)(ref string hjson, ref size_t collumn, T value, 
     }
 }
 
-/** Attempts to parse a HJSON number.
+/** Attempts to parse a Hjson number.
     Params:
         hjson = string being parsed. Must not contain leading whitespace. 
                 The beginning of the string until the end of the parsed 
-                HJSON value is consumed if and only if the number was
+                Hjson value is consumed if and only if the number was
                 succesfully parsed.
-        consumer = Used to return the parsed value.
+        consumer = Object responsible for processing the parsed tokens.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
     Returns: 
     `true` if parsing the number succeeds, `false` if the value was actually a quoteless string.
 */
@@ -329,14 +337,14 @@ bool tryParseNumber(Consumer)(ref string hjson, ref Consumer consumer)
     return true;
 }
 
-/** Parses a HJSON quoteless string.
+/** Parses a Hjson quoteless string.
     Params:
-        hjson = HJSON being parsed. Must not contain leading whitespace. 
-                The beginning of the HJSON until the end of the parsed 
-                HJSON value is consumed.
+        hjson = Hjson being parsed. Must not contain leading whitespace. 
+                The beginning of the Hjson until the end of the parsed 
+                Hjson value is consumed.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
     Returns: The parsed string.
 */
 string parseQuotelessString(ref string hjson)
@@ -349,17 +357,17 @@ in(!hjson.empty)
     return result;
 }
 
-/** Parses a HJSON JSON-string.
+/** Parses a Hjson JSON-string.
     Params:
-        hjson = HJSON being parsed. Must not contain leading whitespace. 
-                The beginning of the HJSON until the end of the parsed 
-                HJSON value is consumed.
+        hjson = Hjson being parsed. Must not contain leading whitespace. 
+                The beginning of the Hjson until the end of the parsed 
+                Hjson value is consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                 last line feed. Will be updated by the function. 
                 Needed to properly parse multiline strings.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
     Returns: The parsed string.
 */
 string parseJSONString(ref string hjson, ref size_t collumn)
@@ -409,24 +417,24 @@ in(hjson.front == '"' || hjson.front == '\'')
                     collumn += 4;
                 break;
 
-                default: throw new HJSONException("Invalid escape sequence: \\%s".format(d));
+                default: throw new HjsonException("Invalid escape sequence: \\%s".format(d));
             }
         }
         else result ~= c;
     }
-    throw new HJSONException("Unterminated string literal.");
+    throw new HjsonException("Unterminated string literal.");
 }
 
-/** Parses a HJSON multiline string.
+/** Parses a Hjson multiline string.
     Params:
-        hjson = HJSON being parsed. Must not contain leading whitespace. 
-                The beginning of the HJSON until the end of the parsed 
-                HJSON value is consumed.
+        hjson = Hjson being parsed. Must not contain leading whitespace. 
+                The beginning of the Hjson until the end of the parsed 
+                Hjson value is consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                 last line feed.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON value.
-    Invalid HJSON past the first valid value is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson value.
+    Invalid Hjson past the first valid value is not detected.
     Returns: The parsed string.
 */
 string parseMultilineString(ref string hjson, immutable size_t collumn)
@@ -471,22 +479,22 @@ in(hjson.save.startsWith("'''"))
 
 /** Parses a single object member.
     Params:
-        hjson = HJSON being parsed. Must not contain leading whitespace. 
-                The beginning of the HJSON until the end of the parsed 
-                HJSON object member is consumed.
+        hjson = Hjson being parsed. Must not contain leading whitespace. 
+                The beginning of the Hjson until the end of the parsed 
+                Hjson object member is consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                 last line feed. Will be updated by the function. 
                 Needed to properly parse multiline strings.
-        consumer = Consumer used to construct the JSON object.
+        consumer = Object responsible for processing the parsed tokens.
     Throws: 
-    `HJSONException` if `hjson` starts with an invalid HJSON object member.
-    Invalid HJSON past the first valid object member is not detected.
+    `HjsonException` if `hjson` starts with an invalid Hjson object member.
+    Invalid Hjson past the first valid object member is not detected.
 */
 void parseObjectMember(Consumer)(ref string hjson, ref size_t collumn, ref Consumer consumer)
 {
     // Parse the key
     string key;
-    enforce(!isPunctuator(hjson.front), "Expected HJSON member but got punctuator.");
+    enforce(!isPunctuator(hjson.front), "Expected Hjson member but got punctuator.");
     if(hjson.front == '"' || hjson.front == '\'') 
         key = hjson.parseJSONString(collumn);
     else {
@@ -516,14 +524,14 @@ void parseObjectMember(Consumer)(ref string hjson, ref size_t collumn, ref Consu
     hjson.parseValue(collumn, consumer);
 }
 
-/** Consumes all whitespace and comments from the front of the passed HJSON.
+/** Consumes all whitespace and comments from the front of the passed Hjson.
     Params:
-        hjson = HJSON from which whitespace and comments should be consumed.
+        hjson = Hjson from which whitespace and comments should be consumed.
         collumn = How many `dchar`s were popped from the front of `hjson` since
                 last line feed. Will be updated by the function. 
                 Needed to properly parse multiline strings.
     Throws:
-    HJSONException if a block comment is not terminated before the end of the string.
+    HjsonException if a block comment is not terminated before the end of the string.
     Returns:
     `true` if a line feed was skipped, `false` otherwise. This is needed because
     line feeds can be used to separate aggregate members similar to commas.
@@ -592,10 +600,10 @@ bool skipWC(ref string hjson, ref size_t collumn)
     assert(text.empty);
 }*/
 
-alias enforce = _enforce!HJSONException;
+alias enforce = _enforce!HjsonException;
 
-/** Checks whether given `dchar` is a HJSON punctuator.
-    HJSON quoteless strings may not start with a punctuator,
+/** Checks whether given `dchar` is a Hjson punctuator.
+    Hjson quoteless strings may not start with a punctuator,
     and quoteless object keys may not contain any punctuators.
 */
 bool isPunctuator(dchar c)
@@ -662,17 +670,17 @@ immutable readmeJson = q"<
 
 @("readme") unittest
 {
-    readmeHjson.parseHJSON.should == readmeJson.parseJSON;
+    readmeHjson.parseHjson.should == readmeJson.parseJSON;
 }
 
-@("Direct HJSON to JSON conversion") unittest
+@("Direct Hjson to JSON conversion") unittest
 {
     import asdf : jsonSerializer, parseJson;
     import std.array : appender;
 
     auto json = appender!string();
     auto serializer = jsonSerializer(&json.put!(const(char)[]));
-    readmeHjson.parseHJSON(serializer);
+    readmeHjson.parseHjson(serializer);
     serializer.flush;
 
     json.data.parseJson.should == readmeJson.parseJson;

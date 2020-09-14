@@ -1,5 +1,7 @@
 module hjson.adapter;
 
+package(hjson):
+
 import std.json : JSONValue, JSONType, JSONException;
 
 struct StdJsonSerializer

@@ -1,6 +1,7 @@
 /// This module runs unit tests copied from HJSON-JS.
 module hjson.hjson_js_tests;
 
+private:
 version(unittest):
 version(Have_unit_threaded):
 
@@ -16,7 +17,7 @@ import unit_threaded;
 Asdf parseHjsonToAsdf(string hjson)
 {
     auto consumer = asdfSerializer();
-    hjson.parseHJSON(consumer);
+    hjson.parseHjson(consumer);
     return consumer.app.result;
 }
 
@@ -36,18 +37,18 @@ static foreach(testName; [
 ]) {
     @testName unittest 
     {
-        string json = import(testName~"_result.json"),
+        immutable json = import(testName~"_result.json"),
             hjsonResult = import(testName~"_result.hjson"),
             hjsonTest = import(testName~"_test.hjson");
 
-        hjsonTest.parseHJSON.should == json.parseJSON;
-        hjsonResult.parseHJSON.should == json.parseJSON;
-        json.parseHJSON.should == json.parseJSON;
+        hjsonTest.parseHjson.should == json.parseJSON;
+        hjsonResult.parseHjson.should == json.parseJSON;
+        json.parseHjson.should == json.parseJSON;
     }
     @Tags("asdf_interop")
     @(testName~"-asdf") unittest
     {
-        string json = import(testName~"_result.json"),
+        immutable json = import(testName~"_result.json"),
             hjsonResult = import(testName~"_result.hjson"),
             hjsonTest = import(testName~"_test.hjson");
 
@@ -64,17 +65,17 @@ static foreach(testName; [
 ]) {
     @testName unittest 
     {
-        string hjson = import(testName~"_result.hjson"),
+        immutable hjson = import(testName~"_result.hjson"),
             json = import(testName~"_result.json");
 
-        hjson.parseHJSON.should == json.parseJSON;
-        json.parseHJSON.should == json.parseJSON;
+        hjson.parseHjson.should == json.parseJSON;
+        json.parseHjson.should == json.parseJSON;
     }
 
     @Tags("asdf_interop")
     @(testName~"-asdf") unittest
     {
-        string hjson = import(testName~"_result.hjson"),
+        immutable hjson = import(testName~"_result.hjson"),
             json = import(testName~"_result.json");
         
         hjson.parseHjsonToAsdf.should == json.parseJsonToAsdf;
@@ -84,18 +85,18 @@ static foreach(testName; [
 
 @("pass1") unittest 
 {
-    string hjson = import("pass1_result.hjson"),
+    immutable hjson = import("pass1_result.hjson"),
         json = import("pass1_result.json");
 
-    hjson.parseHJSON.should == json.parseJSON;
-    json.parseHJSON.should == json.parseJSON;
+    hjson.parseHjson.should == json.parseJSON;
+    json.parseHjson.should == json.parseJSON;
 }
 
 @Tags("asdf_interop")
 @ShouldFail("This fails because ASDF parses doubles at higher precision than std.conv.to")
 @("pass1-asdf") unittest
 {
-    string hjson = import("pass1_result.hjson"),
+    immutable hjson = import("pass1_result.hjson"),
         json = import("pass1_result.json");
     
     hjson.parseHjsonToAsdf.should == json.parseJsonToAsdf;
@@ -116,7 +117,7 @@ static foreach(failNr; chain(
     @Tags("invalid_input")
     @format("failJSON%d", failNr) unittest 
     {
-        string json = import("failJSON%02d_test.json".format(failNr));
-        json.parseHJSON.shouldThrow!HJSONException;
+        immutable json = import("failJSON%02d_test.json".format(failNr));
+        json.parseHjson.shouldThrow!HjsonException;
     }
 }
