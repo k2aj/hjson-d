@@ -1,5 +1,5 @@
 /// This module runs unit tests copied from HJSON-JS.
-module hjson_js_tests;
+module hjson.hjson_js_tests;
 
 version(unittest):
 version(Have_unit_threaded):

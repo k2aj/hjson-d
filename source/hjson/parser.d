@@ -1,4 +1,4 @@
-module hjson;
+module hjson.parser;
 
 public import std.json : JSONValue;
 import std.typecons : Flag;
