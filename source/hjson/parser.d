@@ -609,58 +609,71 @@ version(Have_unit_threaded):
 import unit_threaded;
 import std.json;
 
+immutable readmeHjson = q"<
+    // example.hjson
+    {
+        "name": "hjson",
+        "readable": {
+            omitQuotes: This is a quoteless string
+            omitCommas: [
+                1
+                2
+                3
+            ]
+            trailingCommas: {
+                a : true,
+                b : false,
+                c : null,
+            }
+            multilineStrings:
+                '''
+                Lorem
+                ipsum
+                '''
+            # Comments
+            // C-style comments
+            /*
+                Block
+                comments
+            */
+        }
+    }
+>";
+
+immutable readmeJson = q"<
+    {
+        "name": "hjson",
+        "readable": {
+            "omitQuotes": "This is a quoteless string",
+            "omitCommas": [
+                1,
+                2,
+                3
+            ],
+            "trailingCommas": {
+                "a" : true,
+                "b" : false,
+                "c" : null
+            },
+            "multilineStrings": "Lorem\nipsum"
+        }
+    }
+>";
+
 @("readme") unittest
 {
+    readmeHjson.parseHJSON.should == readmeJson.parseJSON;
+}
 
-    auto hjson = q"<
-        // example.hjson
-        {
-            "name": "hjson",
-            "readable": {
-                omitQuotes: This is a quoteless string
-                omitCommas: [
-                    1
-                    2
-                    3
-                ]
-                trailingCommas: {
-                    a : true,
-                    b : false,
-                    c : null,
-                }
-                multilineStrings:
-                    '''
-                    Lorem
-                    ipsum
-                    '''
-                # Comments
-                // C-style comments
-                /*
-                    Block
-                    comments
-                */
-            }
-        }
-    >";
-    auto json = q"<
-        {
-            "name": "hjson",
-            "readable": {
-                "omitQuotes": "This is a quoteless string",
-                "omitCommas": [
-                    1,
-                    2,
-                    3
-                ],
-                "trailingCommas": {
-                    "a" : true,
-                    "b" : false,
-                    "c" : null
-                },
-                "multilineStrings": "Lorem\nipsum"
-            }
-        }
-    >";
+@("Direct HJSON to JSON conversion") unittest
+{
+    import asdf : jsonSerializer, parseJson;
+    import std.array : appender;
 
-    hjson.parseHJSON.should == json.parseJSON;
+    auto json = appender!string();
+    auto serializer = jsonSerializer(&json.put!(const(char)[]));
+    readmeHjson.parseHJSON(serializer);
+    serializer.flush;
+
+    json.data.parseJson.should == readmeJson.parseJson;
 }
