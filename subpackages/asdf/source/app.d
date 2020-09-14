@@ -4,8 +4,7 @@ version(unittest)
 	{
 		import unit_threaded;
 		mixin runTestsMain!(
-			"hjson.adapter",
-            "hjson.parser"
+			"hjson.asdf"
 		);
 	}
 }

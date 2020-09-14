@@ -1,9 +1,6 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"asdf": "0.7.0",
-		"mir-algorithm": "3.9.34",
-		"mir-core": "1.1.12",
 		"unit-threaded": "1.0.10"
 	}
 }

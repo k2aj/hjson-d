@@ -614,74 +614,77 @@ bool isPunctuator(dchar c)
 version(unittest):
 version(Have_unit_threaded):
 
+import std.format : format;
+import std.json : parseJSON;
+import std.range : chain, only, iota;
+
 import unit_threaded;
-import std.json;
 
-immutable readmeHjson = q"<
-    // example.hjson
+static foreach(testName; [
+    "charset",
+    "charset2",
+    "comments",
+    "empty",
+    "kan",
+    "keys",
+    "oa",
+    "passSingle",
+    "stringify1",
+    "strings",
+    "strings2",
+    "trail"
+]) {
+    @testName unittest 
     {
-        "name": "hjson",
-        "readable": {
-            omitQuotes: This is a quoteless string
-            omitCommas: [
-                1
-                2
-                3
-            ]
-            trailingCommas: {
-                a : true,
-                b : false,
-                c : null,
-            }
-            multilineStrings:
-                '''
-                Lorem
-                ipsum
-                '''
-            # Comments
-            // C-style comments
-            /*
-                Block
-                comments
-            */
-        }
-    }
->";
+        immutable json = import(testName~"_result.json"),
+            hjsonResult = import(testName~"_result.hjson"),
+            hjsonTest = import(testName~"_test.hjson");
 
-immutable readmeJson = q"<
+        hjsonTest.parseHjson.should == json.parseJSON;
+        hjsonResult.parseHjson.should == json.parseJSON;
+        json.parseHjson.should == json.parseJSON;
+    }
+}
+static foreach(testName; [
+    "mltabs",
+    "pass1",
+    "pass2",
+    "pass3",
+    "pass4"
+]) {
+    @testName unittest 
     {
-        "name": "hjson",
-        "readable": {
-            "omitQuotes": "This is a quoteless string",
-            "omitCommas": [
-                1,
-                2,
-                3
-            ],
-            "trailingCommas": {
-                "a" : true,
-                "b" : false,
-                "c" : null
-            },
-            "multilineStrings": "Lorem\nipsum"
-        }
-    }
->";
+        immutable hjson = import(testName~"_result.hjson"),
+            json = import(testName~"_result.json");
 
-@("readme") unittest
-{
-    readmeHjson.parseHjson.should == readmeJson.parseJSON;
+        hjson.parseHjson.should == json.parseJSON;
+        json.parseHjson.should == json.parseJSON;
+    }
 }
 
-@("Direct Hjson to JSON conversion") unittest
+static foreach(failNr; chain(
+    only(2),
+    iota(5,7),
+    iota(11,18),
+    iota(19,24),
+    only(26),
+    iota(28,34)
+)) {
+    @Tags("invalid_input")
+    @format("failJSON%d", failNr) unittest 
+    {
+        immutable json = import("failJSON%02d_test.json".format(failNr));
+        json.parseHjson.shouldThrow!HjsonException;
+    }
+}
+
+static foreach(failNr; [7,8,10,34])
 {
-    import asdf : jsonSerializer, parseJson;
-    import std.array : appender;
-
-    auto json = appender!string();
-    auto serializer = jsonSerializer(&json.put!(const(char)[]));
-    readmeHjson.parseHjson(serializer);
-    serializer.flush;
-
-    json.data.parseJson.should == readmeJson.parseJson;
+    @Tags("invalid_input")
+    @ShouldFail("Hjson-d does not attempt to validate the rest of input after parsing a valid Hjson value.")
+    @format("failJSON%d", failNr) unittest 
+    {
+        immutable json = import("failJSON%02d_test.json".format(failNr));
+        json.parseHjson.shouldThrow!HjsonException;
+    }
 }

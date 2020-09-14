@@ -2,6 +2,7 @@
 	"authors": [
 		"Krzysztof Jajeśnica"
 	],
+	"copyright": "Copyright © 2020, Krzysztof Jajeśnica",
 	"configurations": [
 		{
 			"name": "library",
@@ -18,11 +19,11 @@
 			}
 		}
 	],
-	"subPackages": [
-		"subpackages/asdf"
-	],
-	"copyright": "Copyright © 2020, Krzysztof Jajeśnica",
-	"description": "Hjson parser compatible with std.json and ASDF.",
+	"dependencies": {
+		"asdf": "~>0.7.0",
+		"hjson-d": "*"
+	},
+	"description": "ASDF interop for hjson-d.",
 	"license": "MIT",
-	"name": "hjson-d"
+	"name": "asdf"
 }

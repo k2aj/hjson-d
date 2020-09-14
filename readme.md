@@ -1,11 +1,11 @@
 # hjson-d
 
-Hjson-d is a [HJSON](https://hjson.github.io/) parser written in D.
-HJSON is a syntax extension to JSON which improves readability and helps avoid bugs caused by missing/trailing commas:
+Hjson-d is a [Hjson](https://hjson.github.io/) parser written in D.
+Hjson is a syntax extension to JSON, designed to be easier for humans to work with. It improves readability and helps avoid bugs caused by missing/trailing commas:
 ```hjson
 // example.hjson
 {
-    "name": "HJSON",
+    "name": "Hjson",
     "readable": {
         omitQuotes: This is a quoteless string
         omitCommas: [
@@ -33,27 +33,46 @@ HJSON is a syntax extension to JSON which improves readability and helps avoid b
 }
 ```
 
-### Getting started
+## Getting started
 Add hjson-d to your DUB project:
 ```
 dub add hjson-d
 ```
 
-### Usage
-You can parse HJSON into a `std.json.JSONValue` by importing `hjson` and using `parseHJSON`:
+## Features
+
+### Simple parsing
+Hjson strings can be parsed using the `parseHjson` method:
 ```d
+import std.json : JSONValue;
 import std.file : readText;
 import hjson;
 
-JSONValue value = readText("example.hjson").parseHJSON;
+JSONValue value = readText("example.hjson").parseHjson;
 ```
-When `parseHJSON` encounters invalid HJSON it will throw a `HJSONException`.
+When `parseHjson` encounters invalid input, it will throw a `HjsonException` describing the error.
 
-### Limitations
-- Emitting HJSON is not supported
-- `parseHJSON` only reads a single HJSON value and will not attempt to look further in the input to find errors. Because of that certain errors will not be detected: 
+### [ASDF](https://code.dlang.org/packages/asdf) interop
+Add `hjson-d:asdf` to your DUB project to allow parsing Hjson directly into ASDF representation:
+```
+dub add hjson:asdf
+```
+All you have to do is call `parseHjsonToAsdf`:
+```d
+import asdf.asdf : Asdf;
+import std.file : readText;
+import hjson.asdf;
+
+Asdf asdf = readText("example.hjson").parseHjsonToAsdf;
+```
+
+## Limitations
+- Emitting Hjson is not supported.
+- `parseHjson` only reads a single Hjson value and will not attempt to look further in the input to find errors. Because of that certain errors will not be detected: 
 ```hjson
 [1, 2, 3, 4] 5 #Trailing 5 will not cause an error because parsing stops after [1, 2, 3, 4]
 ```
 - Parsing from arbitrary forward ranges is currently not supported, but is planned for the future.
-- Parsing doesn't support omitting braces for root object.
+
+## Bugs
+- Omitting braces for root object is not supported.
